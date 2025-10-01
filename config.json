@@ -1,5 +1,5 @@
 {
-    "backup_dir": "/tmp/backup",
+    "backup_dir": "/tmp/sql-backup",
     "backup_interval_time": 60,
     "telegram": {
         "bot_token": "your-telegram-bot-token",
@@ -11,38 +11,50 @@
     "databases": [
         {
             "type": "mariadb",
-            "env_path": "/opt/marzban/.env",
-            "docker_path": "/opt/marzban/docker-compose.yml",
+            "env_path": "/opt/pasarguard/.env",
+            "docker_path": "/opt/pasarguard/docker-compose.yml",
             "container_name": "mariadb",
             "url_format":"sqlalchemy",
             "external": [
-                "/var/lib/marzban/certs",
-                "/var/lib/marzban/templates",
-                "/var/lib/marzban/xray_config.json"
+                "/var/lib/pasarguard/certs",
+                "/var/lib/pasarguard/templates",
+                "/var/lib/pasarguard/xray_config.json"
             ]
         },
         {
             "type": "sqlite",
             "db_name":"test",
-            "env_path": "/opt/marzban/.env",
-            "docker_path": "/opt/marzban/docker-compose.yml",
+            "env_path": "/opt/pasarguard/.env",
+            "docker_path": "/opt/pasarguard/docker-compose.yml",
             "container_name": "",
             "external": [
-                "/var/lib/marzban/certs",
-                "/var/lib/marzban/templates",
-                "/var/lib/marzban/xray_config.json"
+                "/var/lib/pasarguard/certs",
+                "/var/lib/pasarguard/templates",
+                "/var/lib/pasarguard/xray_config.json"
             ]
         },
         {
             "type": "mysql",
-            "env_path": "/opt/marzban/.env",
-            "docker_path": "/opt/marzban/docker-compose.yml",
+            "env_path": "/opt/pasarguard/.env",
+            "docker_path": "/opt/pasarguard/docker-compose.yml",
             "container_name": "mysql",
             "url_format":"gorm",
             "external": [
-                "/var/lib/marzban/certs",
-                "/var/lib/marzban/templates",
-                "/var/lib/marzban/xray_config.json"
+                "/var/lib/pasarguard/certs",
+                "/var/lib/pasarguard/templates",
+                "/var/lib/pasarguard/xray_config.json"
+            ]
+        },
+        {
+            "type": "timescaledb",
+            "env_path": "/opt/pasarguard/.env",
+            "docker_path": "/opt/pasarguard/docker-compose.yml",
+            "container_name": "timescaledb",
+            "url_format":"gorm",
+            "external": [
+                "/var/lib/pasarguard/certs",
+                "/var/lib/pasarguard/templates",
+                "/var/lib/pasarguard/xray_config.json"
             ]
         }
     ]

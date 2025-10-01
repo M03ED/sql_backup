@@ -1,6 +1,6 @@
 # M03ED Backup
 You Can Use This Script To Make Backup From `gorm` or `sqlalchemy` Database On Telegram And Discord.
-- MySQL, MariaDB and SQlite3 Are Supported.
+- PostgreSQL, TimescaleDB, MySQL, MariaDB and SQlite3 Are Supported.
 
 # Usage
 ### Step 1
@@ -25,7 +25,7 @@ cd /opt/sql_backup
 Set-up Your `config.json` file.
 ```json
 {
-    "backup_dir": "/opt/M03ED_Backup/temp",
+    "backup_dir": "/tmp/sql-backup",
     "backup_interval_time": 60, // interval per minutes
     "telegram": {
         "bot_token": "your-telegram-bot-token", // replace with telegram bot token, max to 50mb backup
@@ -36,15 +36,15 @@ Set-up Your `config.json` file.
     },
     "databases": [
         {
-            "type": "mariadb", //can be mysql, sqlite or mariadb
-            "env_path": "/opt/marzban/.env",
-            "docker_path": "/opt/marzban/docker-compose.yml",
+            "type": "timescaledb", //can be timescaledb, postgresql, mysql, mariadb or sqlite 
+            "env_path": "/opt/pasarguard/.env",
+            "docker_path": "/opt/pasarguard/docker-compose.yml",
             "container_name": "mariadb", // database container name
-            "url_format":"sqlalchemy", // can be sqlalchemy or gorm, use sqlalchemy for marzban
+            "url_format":"sqlalchemy", // can be sqlalchemy or gorm, use sqlalchemy for pasarguard
             "external": [
-                "/var/lib/marzban/certs",
-                "/var/lib/marzban/templates",
-                "/var/lib/marzban/xray_config.json"
+                "/var/lib/pasarguard/certs",
+                "/var/lib/pasarguard/templates",
+                "/var/lib/pasarguard/xray_config.json"
             ] // any file or folder you need to add to backup file
         }
     ] // list of database's, you can add many as you want

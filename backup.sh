@@ -252,6 +252,32 @@ backup_mariadb() {
     return 0
 }
 
+backup_postgresql() {
+    local full_path=$1
+    local container_name=$2
+    local docker_path=$3
+    local database=$4
+    local username=$5
+    local password=$6
+    shift 6
+    local additional_files=("$@")
+
+    log "PostgreSQL/TimescaleDB Backup - User: $username, DB: $database"
+
+    if ! output=$(docker compose -f "$docker_path" exec -e PGPASSWORD="$password" "$container_name" pg_dump -U "$username" -d "$database" 2>&1 >"$SQL_FILE_NAME"); then
+        if [[ "$output" == *"password authentication failed"* || "$output" == *"FATAL"* ]]; then
+            log "Error: Authentication failed for PostgreSQL/TimescaleDB backup. Please check credentials."
+            return 1
+        else
+            log "Error during PostgreSQL/TimescaleDB backup: $output"
+            return 1
+        fi
+    fi
+
+    make_tar_file "$full_path" "$SQL_FILE_NAME" "$docker_path" "${additional_files[@]}"
+    return 0
+}
+
 parse_sqlalchemy_url() {
     local input_string="$1"
 
@@ -270,10 +296,21 @@ parse_sqlalchemy_url() {
 
 parse_gorm_url() {
     local input_string="$1"
+    local username password database credentials_part
 
-    local username=$(echo "$input_string" | cut -d ':' -f 1)
-    local password=$(echo "$input_string" | sed -n 's/^[^:]*:\([^@]*\)@tcp.*/\1/p')
-    local database=$(echo "$input_string" | sed -n 's/.*\/\([^?]*\).*/\1/p' | cut -d '?' -f 1)
+    # Check if it's PostgreSQL format (postgresql:// or postgres://)
+    if [[ "$input_string" =~ ^postgres(ql)?:// ]]; then
+        # PostgreSQL format: postgresql://user:password@host:port/database
+        credentials_part=$(echo "$input_string" | sed -n 's/.*:\/\/\(.*\)@.*/\1/p')
+        username=$(echo "$credentials_part" | cut -d ':' -f 1)
+        password=$(echo "$credentials_part" | cut -d ':' -f 2)
+        database=$(echo "$input_string" | sed -n 's/.*\/\([^/?]*\).*/\1/p')
+    else
+        # MySQL format: user:password@tcp(host:port)/database
+        username=$(echo "$input_string" | cut -d ':' -f 1)
+        password=$(echo "$input_string" | sed -n 's/^[^:]*:\([^@]*\)@tcp.*/\1/p')
+        database=$(echo "$input_string" | sed -n 's/.*\/\([^?]*\).*/\1/p' | cut -d '?' -f 1)
+    fi
 
     echo "$username" "$password" "$database"
 }
@@ -299,18 +336,23 @@ process_database() {
     get_env_var "$env_path" "DATABASE_URL" "SQLALCHEMY_DATABASE_URL"
     local external_paths=$(jq -r ".databases[$index].external | join(\" \")" "$CONFIG_FILE")
 
+    log "DB Type: $db_type, URL Format: $url_format"
+    log "DB URL: $DB_URL"
+
     if [[ $db_type == "sqlite" ]]; then
         DB_URL="${DB_URL#sqlite:///}"
     else
         case $url_format in
         "sqlalchemy")
+            log "Using parse_sqlalchemy_url"
             credentials=($(parse_sqlalchemy_url "$DB_URL"))
             ;;
         "gorm")
+            log "Using parse_gorm_url"
             credentials=($(parse_gorm_url "$DB_URL"))
             ;;
         *)
-            log "Unsupported URL format: $DB_URL"
+            log "Unsupported URL format: $url_format"
             return
             ;;
         esac
@@ -350,6 +392,14 @@ process_database() {
             log "MariaDB backup completed for $db_name"
         else
             log "MariaDB backup failed for $db_name"
+            return
+        fi
+        ;;
+    "postgresql"|"timescaledb")
+        if backup_postgresql "$full_path" "$container_name" "$docker_path" "$database" "$username" "$password" $external_paths; then
+            log "PostgreSQL/TimescaleDB backup completed for $db_name"
+        else
+            log "PostgreSQL/TimescaleDB backup failed for $db_name"
             return
         fi
         ;;
